@@ -1,0 +1,138 @@
+from fastapi import FastAPI, HTTPException, Depends, Header, Query
+from pydantic import BaseModel, ValidationError
+from typing import Dict, List, Any, Optional
+import json
+import httpx
+import os
+import datetime
+
+app = FastAPI(
+    title="Model Context Protocol Server for {{ api_info.title }}",
+    description="MCP server generated from OpenAPI spec for {{ api_info.title }}",
+    version="{{ api_info.version }}"
+)
+
+# --- Generated Models ---
+{% for model_name, model_def in models.items() %}
+class {{ model_name }}(BaseModel):
+    {% for field_name, field_def in model_def['properties'].items() %}
+    {{ field_name }}: {% if not field_name in model_def.get('required', []) %}Optional[{{ field_def['py_type'] }}] = None{% else %}{{ field_def['py_type'] }}{% endif %}
+    {% if field_def.get('description') %}  # {{ field_def['description'] }}{% endif %}
+    {% if field_def.get('enum') %}  # Allowed values: {{ field_def['enum'] }}{% endif %}
+    {% endfor %}
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                {% for field_name, field_def in model_def['properties'].items() %}
+                "{{ field_name }}": {% if field_def['type'] == 'integer' %}0
+                                  {% elif field_def['type'] == 'number' %}0.0
+                                  {% elif field_def['type'] == 'boolean' %}True
+                                  {% elif field_def.get('enum') %}"{{ field_def['enum'][0] }}"
+                                  {% else %}"sample_{{ field_name }}"{% endif %}{% if not loop.last %},{% endif %}
+                {% endfor %}
+            }
+        }
+{% endfor %}
+
+# Create a dictionary of model classes for validation
+models_dict = {
+    {% for model_name, model_def in models.items() %}
+    "{{ model_name }}": {{ model_name }},
+    {% endfor %}
+}
+
+# --- API Configuration ---
+class APIConfig:
+    def __init__(self):
+        self.api_key = os.environ.get("API_KEY", "")
+        self.base_url = os.environ.get("API_BASE_URL", "{% if servers %}{{ servers[0].url }}{% else %}http://localhost:8080{% endif %}")
+    
+    def update(self, api_key=None, base_url=None):
+        if api_key:
+            self.api_key = api_key
+        if base_url:
+            self.base_url = base_url
+
+api_config = APIConfig()
+
+# --- API Client ---
+async def get_api_client():
+    headers = {}
+    {% if security_schemes %}
+    # Add security headers
+    {% for name, scheme in security_schemes.items() %}
+    {% if scheme.type == 'apiKey' %}
+    if api_config.api_key:
+        headers["{{ scheme.name }}"] = api_config.api_key
+    {% elif scheme.type == 'bearer' %}
+    if api_config.api_key:
+        headers["{{ scheme.name }}"] = f"Bearer {api_config.api_key}"
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+    
+    async with httpx.AsyncClient(base_url=api_config.base_url, headers=headers) as client:
+        yield client
+
+# --- MCP Endpoints ---
+@app.get("/context")
+async def list_models():
+    return {
+        "models": {
+            {% for name, model_def in models.items() %}
+            "{{ name }}": {
+                "fields": {
+                    {% for field, props in model_def['properties'].items() %}
+                    "{{ field }}": {
+                        "type": "{{ props['type'] }}",
+                        "required": {% if field in model_def.get('required', []) %}True{% else %}False{% endif %},
+                        {% if props.get('enum') %}
+                        "enum": {{ props['enum']|tojson }},
+                        {% endif %}
+                        "description": "{{ props.get('description', '') }}"
+                    }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                }
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        }
+    }
+
+@app.post("/validate")
+async def validate_model(request: Dict[str, Any]):
+    model_name = request.get("model_name")
+    data = request.get("data", {})
+    
+    if not model_name:
+        raise HTTPException(status_code=400, detail="model_name is required")
+    
+    if model_name not in models_dict:
+        raise HTTPException(status_code=404, detail=f"Model {model_name} not found")
+    
+    # Validate the data against the model
+    try:
+        model_class = models_dict[model_name]
+        validated_data = model_class(**data)
+        return {"valid": True, "data": validated_data.dict()}
+    except ValidationError as e:
+        return {"valid": False, "errors": e.errors()}
+
+@app.post("/config")
+async def update_config(config: Dict[str, str]):
+    api_key = config.get("api_key")
+    base_url = config.get("base_url")
+    
+    api_config.update(api_key=api_key, base_url=base_url)
+    
+    return {"message": "Configuration updated successfully"}
+
+# --- Health Check ---
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "api_configured": bool(api_config.api_key and api_config.base_url)}
+
+# --- Main Entry Point ---
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

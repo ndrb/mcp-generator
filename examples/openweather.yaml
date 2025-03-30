@@ -1,0 +1,408 @@
+openapi: 3.0.0
+info:
+  title: OpenWeather API
+  description: Access current weather data for any location on Earth
+  version: 2.5.0
+  
+servers:
+  - url: https://api.openweathermap.org/data/2.5
+    description: Production server
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: query
+      name: appid
+      
+  schemas:
+    WeatherResponse:
+      type: object
+      properties:
+        coord:
+          type: object
+          properties:
+            lon:
+              type: number
+              description: City geo location, longitude
+            lat:
+              type: number
+              description: City geo location, latitude
+        weather:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: Weather condition id
+              main:
+                type: string
+                description: Group of weather parameters (Rain, Snow, Clouds etc.)
+              description:
+                type: string
+                description: Weather condition within the group
+              icon:
+                type: string
+                description: Weather icon id
+        base:
+          type: string
+          description: Internal parameter
+        main:
+          type: object
+          properties:
+            temp:
+              type: number
+              description: Temperature in Kelvin
+            feels_like:
+              type: number
+              description: Temperature feeling in Kelvin
+            temp_min:
+              type: number
+              description: Minimum temperature in Kelvin
+            temp_max:
+              type: number
+              description: Maximum temperature in Kelvin
+            pressure:
+              type: integer
+              description: Atmospheric pressure in hPa
+            humidity:
+              type: integer
+              description: Humidity percentage
+        visibility:
+          type: integer
+          description: Visibility in meters
+        wind:
+          type: object
+          properties:
+            speed:
+              type: number
+              description: Wind speed in meter/sec
+            deg:
+              type: integer
+              description: Wind direction in degrees
+            gust:
+              type: number
+              description: Wind gust in meter/sec
+        clouds:
+          type: object
+          properties:
+            all:
+              type: integer
+              description: Cloudiness percentage
+        rain:
+          type: object
+          properties:
+            "1h":
+              type: number
+              description: Rain volume for the last 1 hour in mm
+            "3h":
+              type: number
+              description: Rain volume for the last 3 hours in mm
+        snow:
+          type: object
+          properties:
+            "1h":
+              type: number
+              description: Snow volume for the last 1 hour in mm
+            "3h":
+              type: number
+              description: Snow volume for the last 3 hours in mm
+        dt:
+          type: integer
+          description: Time of data calculation, unix, UTC
+        sys:
+          type: object
+          properties:
+            type:
+              type: integer
+              description: Internal parameter
+            id:
+              type: integer
+              description: Internal parameter
+            country:
+              type: string
+              description: Country code
+            sunrise:
+              type: integer
+              description: Sunrise time, unix, UTC
+            sunset:
+              type: integer
+              description: Sunset time, unix, UTC
+        timezone:
+          type: integer
+          description: Shift in seconds from UTC
+        id:
+          type: integer
+          description: City ID
+        name:
+          type: string
+          description: City name
+        cod:
+          type: integer
+          description: Internal parameter
+          
+    ForecastResponse:
+      type: object
+      properties:
+        cod:
+          type: string
+          description: Internal parameter
+        message:
+          type: number
+          description: Internal parameter
+        cnt:
+          type: integer
+          description: Number of timestamps returned
+        list:
+          type: array
+          items:
+            type: object
+            properties:
+              dt:
+                type: integer
+                description: Time of data forecasted, unix, UTC
+              main:
+                type: object
+                properties:
+                  temp:
+                    type: number
+                    description: Temperature in Kelvin
+                  feels_like:
+                    type: number
+                    description: Temperature feeling in Kelvin
+                  temp_min:
+                    type: number
+                    description: Minimum temperature in Kelvin
+                  temp_max:
+                    type: number
+                    description: Maximum temperature in Kelvin
+                  pressure:
+                    type: integer
+                    description: Atmospheric pressure in hPa
+                  sea_level:
+                    type: integer
+                    description: Atmospheric pressure at sea level in hPa
+                  grnd_level:
+                    type: integer
+                    description: Atmospheric pressure at ground level in hPa
+                  humidity:
+                    type: integer
+                    description: Humidity percentage
+                  temp_kf:
+                    type: number
+                    description: Internal parameter
+              weather:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: Weather condition id
+                    main:
+                      type: string
+                      description: Group of weather parameters
+                    description:
+                      type: string
+                      description: Weather condition within the group
+                    icon:
+                      type: string
+                      description: Weather icon id
+              clouds:
+                type: object
+                properties:
+                  all:
+                    type: integer
+                    description: Cloudiness percentage
+              wind:
+                type: object
+                properties:
+                  speed:
+                    type: number
+                    description: Wind speed in meter/sec
+                  deg:
+                    type: integer
+                    description: Wind direction in degrees
+                  gust:
+                    type: number
+                    description: Wind gust in meter/sec
+              visibility:
+                type: integer
+                description: Average visibility in meters
+              pop:
+                type: number
+                description: Probability of precipitation
+              rain:
+                type: object
+                properties:
+                  "3h":
+                    type: number
+                    description: Rain volume for last 3 hours in mm
+              snow:
+                type: object
+                properties:
+                  "3h":
+                    type: number
+                    description: Snow volume for last 3 hours in mm
+              dt_txt:
+                type: string
+                description: Time of data forecasted, ISO, UTC
+        city:
+          type: object
+          properties:
+            id:
+              type: integer
+              description: City ID
+            name:
+              type: string
+              description: City name
+            coord:
+              type: object
+              properties:
+                lat:
+                  type: number
+                  description: City geo location, latitude
+                lon:
+                  type: number
+                  description: City geo location, longitude
+            country:
+              type: string
+              description: Country code
+            population:
+              type: integer
+              description: City population
+            timezone:
+              type: integer
+              description: Shift in seconds from UTC
+            sunrise:
+              type: integer
+              description: Sunrise time, unix, UTC
+            sunset:
+              type: integer
+              description: Sunset time, unix, UTC
+
+    GeocodingResponse:
+      type: array
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+            description: Name of the found location
+          local_names:
+            type: object
+            additionalProperties:
+              type: string
+            description: Name of the found location in different languages
+          lat:
+            type: number
+            description: Geographical coordinates of the found location (latitude)
+          lon:
+            type: number
+            description: Geographical coordinates of the found location (longitude)
+          country:
+            type: string
+            description: Country of the found location
+          state:
+            type: string
+            description: State of the found location
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /weather:
+    get:
+      summary: Current weather data
+      description: Access current weather data for any location on Earth
+      parameters:
+        - name: q
+          in: query
+          description: City name, state code and country code
+          schema:
+            type: string
+        - name: lat
+          in: query
+          description: Latitude
+          schema:
+            type: number
+        - name: lon
+          in: query
+          description: Longitude
+          schema:
+            type: number
+        - name: units
+          in: query
+          description: Units of measurement
+          schema:
+            type: string
+            enum: [standard, metric, imperial]
+            default: standard
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeatherResponse'
+  
+  /forecast:
+    get:
+      summary: 5 day weather forecast
+      description: 5 day forecast with data every 3 hours
+      parameters:
+        - name: q
+          in: query
+          description: City name, state code and country code
+          schema:
+            type: string
+        - name: lat
+          in: query
+          description: Latitude
+          schema:
+            type: number
+        - name: lon
+          in: query
+          description: Longitude
+          schema:
+            type: number
+        - name: units
+          in: query
+          description: Units of measurement
+          schema:
+            type: string
+            enum: [standard, metric, imperial]
+            default: standard
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastResponse'
+  
+  /geo/1.0/direct:
+    get:
+      summary: Geocoding API
+      description: Convert city name to geographic coordinates
+      parameters:
+        - name: q
+          in: query
+          description: City name, state code and country code
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Number of results to return
+          schema:
+            type: integer
+            default: 5
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeocodingResponse'

@@ -1,0 +1,42 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Swagger Petstore
+servers:
+  - url: https://petstore.swagger.io/v2
+paths:
+  /pet:
+    post:
+      tags: [pet]
+      summary: Add a new pet
+      security:
+        - api_key: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Pet"
+      responses:  # <-- This was missing
+        '200':
+          description: Successfully added pet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pet"
+components:
+  schemas:
+    Pet:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        status:
+          type: string
+          enum: [available, pending, sold]
+  securitySchemes:
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
